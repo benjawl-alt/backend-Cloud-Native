@@ -1,0 +1,34 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: ms-rabbit-admin
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672,localhost:5673}
+    username: ${RABBITMQ_USER:pedidos360}
+    password: ${RABBITMQ_PASSWORD:pedidos360}
+    virtual-host: /
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Mismos valores que ms-order y ms-product
+          issuer-uri: https://login.microsoftonline.com/6cad67e2-2872-4d7c-9af2-de5251e67986/v2.0
+          audiences: b3dd3447-de99-4c5a-9cae-cf347f9aa7c2
+
+app:
+  security:
+    enabled: ${APP_SECURITY_ENABLED:true}   # false solo para pruebas locales sin token
+
+rabbit-admin:
+  management-url: ${RABBITMQ_MANAGEMENT_URL:http://localhost:15672}
+  management-user: ${RABBITMQ_USER:pedidos360}
+  management-password: ${RABBITMQ_PASSWORD:pedidos360}
+  dlx-name: pedidos360.dlx
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

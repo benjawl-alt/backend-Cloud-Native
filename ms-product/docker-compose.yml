@@ -1,0 +1,21 @@
+services:
+  mongodb:
+    image: mongo:latest
+    container_name: pedidos360-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  ms-product:
+    build: .
+    container_name: pedidos360-ms-product
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_MONGODB_URI=mongodb://mongodb:27017/pedidos360_product
+    depends_on:
+      - mongodb
+
+volumes:
+  mongo_data:

@@ -1,0 +1,40 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: ms-product
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://login.microsoftonline.com/6cad67e2-2872-4d7c-9af2-de5251e67986/v2.0
+          audiences: b3dd3447-de99-4c5a-9cae-cf347f9aa7c2
+
+  mongodb:
+    uri: mongodb://mongodb:27017/pedidos360_product
+
+  # ===== NUEVO: RabbitMQ (clúster de 2 nodos) =====
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672,localhost:5673}
+    username: ${RABBITMQ_USER:pedidos360}
+    password: ${RABBITMQ_PASSWORD:pedidos360}
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 10
+        default-requeue-rejected: false
+
+# ===== NUEVO: nombres centralizados =====
+pedidos360:
+  rabbit:
+    exchanges:
+      topic: pedidos360.topic
+      dlx: pedidos360.dlx
+    queues:
+      sales: product.sales.queue
+      sales-dlq: product.sales.dlq
+    routing-keys:
+      sales-binding: order.created

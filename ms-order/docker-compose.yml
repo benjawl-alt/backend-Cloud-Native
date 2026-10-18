@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # Contenedor de MongoDB
+  mongodb:
+    image: mongo:latest
+    container_name: pedidos360-mongodb
+    ports:
+      - "27017:27017" # Expone el puerto para que puedas revisarlo con MongoDB Compass si quieres
+    volumes:
+      - mongo_data:/data/db # Guarda los datos para que no se borren al apagar Docker
+
+  # Contenedor de tu Microservicio ms-order
+  ms-order:
+    build: .
+    container_name: pedidos360-ms-order
+    ports:
+      - "8081:8081"
+    environment:
+      # Sobrescribe la URI de Mongo del application.yml para usar el nombre del contenedor "mongodb"
+      - SPRING_DATA_MONGODB_URI=mongodb://mongodb:27017/pedidos360_order
+    depends_on:
+      - mongodb
+
+volumes:
+  mongo_data:

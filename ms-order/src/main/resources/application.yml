@@ -1,0 +1,70 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: ms-order
+
+  # Configuración de Seguridad con Azure AD
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://login.microsoftonline.com/6cad67e2-2872-4d7c-9af2-de5251e67986/v2.0
+          # Dejamos solo el Client ID puro sin "api://"
+          audiences: b3dd3447-de99-4c5a-9cae-cf347f9aa7c2
+
+  # Configuración de MongoDB
+  mongodb:
+    uri: mongodb://mongodb:27017/pedidos360_order
+
+  # Kafka: streaming y auditoría (complementa RabbitMQ, no lo reemplaza)
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+    consumer:
+      group-id: pedidos360-default
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+  # ===== NUEVO: RabbitMQ (clúster de 2 nodos) =====
+  rabbitmq:
+    addresses: ${RABBITMQ_ADDRESSES:localhost:5672,localhost:5673}
+    username: ${RABBITMQ_USER:pedidos360}
+    password: ${RABBITMQ_PASSWORD:pedidos360}
+    virtual-host: /
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: manual          # ACK explícito en cada consumidor
+        prefetch: 10
+        default-requeue-rejected: false   # lo rechazado va a la DLQ
+
+# ===== NUEVO: nombres centralizados de exchanges, colas y routing keys =====
+pedidos360:
+  rabbit:
+    dlq-logger-enabled: false             # true = un listener consume las DLQ y las deja en log
+    exchanges:
+      topic: pedidos360.topic
+      direct: pedidos360.direct
+      dlx: pedidos360.dlx
+    queues:
+      notification: order.notification.queue
+      notification-dlq: order.notification.dlq
+      kitchen: kitchen.ticket.queue
+      kitchen-dlq: kitchen.ticket.dlq
+    routing-keys:
+      order-created: order.created
+      notification-pattern: order.*
+      kitchen-ticket: kitchen.ticket
+
+# Kafka topics
+app:
+  kafka:
+    topics:
+      orders-created: pedidos360.orders.created
