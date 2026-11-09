@@ -18,18 +18,27 @@ spring:
   mongodb:
     uri: mongodb://mongodb:27017/pedidos360_order
 
-  # Kafka: streaming y auditoría (complementa RabbitMQ, no lo reemplaza)
+   # Kafka: streaming y auditoría (complementa RabbitMQ, no lo reemplaza)
   kafka:
-    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:29092}
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:29092,localhost:29093}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 30000
     consumer:
       group-id: pedidos360-default
       auto-offset-reset: earliest
+      enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        max.poll.records: 50
+    listener:
+      ack-mode: record
+      concurrency: 3
 
   # ===== NUEVO: RabbitMQ (clúster de 2 nodos) =====
   rabbitmq:
@@ -62,9 +71,13 @@ pedidos360:
       order-created: order.created
       notification-pattern: order.*
       kitchen-ticket: kitchen.ticket
-
+      
 # Kafka topics
 app:
   kafka:
+    replicas: ${KAFKA_REPLICAS:1}
     topics:
       orders-created: pedidos360.orders.created
+      orders-created-dlt: pedidos360.orders.created.DLT
+      low-stock: pedidos360.inventory.low-stock
+      low-stock-dlt: pedidos360.inventory.low-stock.DLT

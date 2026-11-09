@@ -1,0 +1,22 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: ms-kafka-admin
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://login.microsoftonline.com/6cad67e2-2872-4d7c-9af2-de5251e67986/v2.0
+          audiences: b3dd3447-de99-4c5a-9cae-cf347f9aa7c2
+
+kafka-admin:
+  bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:29092,localhost:29093}
+  timeout-seconds: 10
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

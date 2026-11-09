@@ -5,6 +5,7 @@ spring:
   application:
     name: ms-product
 
+  # Seguridad con Azure AD
   security:
     oauth2:
       resourceserver:
@@ -12,10 +13,11 @@ spring:
           issuer-uri: https://login.microsoftonline.com/6cad67e2-2872-4d7c-9af2-de5251e67986/v2.0
           audiences: b3dd3447-de99-4c5a-9cae-cf347f9aa7c2
 
+  # MongoDB
   mongodb:
     uri: mongodb://mongodb:27017/pedidos360_product
 
-  # ===== NUEVO: RabbitMQ (clúster de 2 nodos) =====
+  # RabbitMQ
   rabbitmq:
     addresses: ${RABBITMQ_ADDRESSES:localhost:5672,localhost:5673}
     username: ${RABBITMQ_USER:pedidos360}
@@ -27,7 +29,29 @@ spring:
         prefetch: 10
         default-requeue-rejected: false
 
-# ===== NUEVO: nombres centralizados =====
+  # Kafka
+  kafka:
+    bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:29092,localhost:29093}
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      properties:
+        enable.idempotence: true
+
+    consumer:
+      group-id: pedidos360-product-default
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+    listener:
+      ack-mode: record
+      concurrency: 3
+
+# Configuración centralizada de RabbitMQ
 pedidos360:
   rabbit:
     exchanges:
@@ -38,3 +62,13 @@ pedidos360:
       sales-dlq: product.sales.dlq
     routing-keys:
       sales-binding: order.created
+
+# Configuración de stock y tópicos Kafka
+app:
+  stock:
+    low-threshold: 10
+
+  kafka:
+    topics:
+      orders-created: pedidos360.orders.created
+      low-stock: pedidos360.inventory.low-stock
