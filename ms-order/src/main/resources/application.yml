@@ -1,3 +1,4 @@
+
 server:
   port: 8081
 
@@ -11,23 +12,27 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: https://login.microsoftonline.com/6cad67e2-2872-4d7c-9af2-de5251e67986/v2.0
-          # Dejamos solo el Client ID puro sin "api://"
           audiences: b3dd3447-de99-4c5a-9cae-cf347f9aa7c2
 
   # Configuración de MongoDB
   mongodb:
     uri: mongodb://mongodb:27017/pedidos360_order
 
-   # Kafka: streaming y auditoría (complementa RabbitMQ, no lo reemplaza)
+  # Kafka: streaming y auditoría
   kafka:
     bootstrap-servers: ${SPRING_KAFKA_BOOTSTRAP_SERVERS:localhost:29092,localhost:29093}
+
+    
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all
       properties:
         enable.idempotence: true
-        delivery.timeout.ms: 30000
+        request.timeout.ms: 30000
+        linger.ms: 5
+        delivery.timeout.ms: 120000
+
     consumer:
       group-id: pedidos360-default
       auto-offset-reset: earliest
@@ -36,11 +41,22 @@ spring:
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       properties:
         max.poll.records: 50
+
     listener:
       ack-mode: record
       concurrency: 3
 
-  # ===== NUEVO: RabbitMQ (clúster de 2 nodos) =====
+    # Kafka Streams
+    streams:
+      application-id: pedidos360-inventory-streams
+      replication-factor: ${KAFKA_REPLICAS:1}
+      state-dir: /tmp/kafka-streams
+      properties:
+        default.key.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        default.value.serde: org.apache.kafka.common.serialization.Serdes$StringSerde
+        commit.interval.ms: 1000
+
+  # RabbitMQ: clúster de 2 nodos
   rabbitmq:
     addresses: ${RABBITMQ_ADDRESSES:localhost:5672,localhost:5673}
     username: ${RABBITMQ_USER:pedidos360}
@@ -50,14 +66,14 @@ spring:
     publisher-returns: true
     listener:
       simple:
-        acknowledge-mode: manual          # ACK explícito en cada consumidor
+        acknowledge-mode: manual
         prefetch: 10
-        default-requeue-rejected: false   # lo rechazado va a la DLQ
+        default-requeue-rejected: false
 
-# ===== NUEVO: nombres centralizados de exchanges, colas y routing keys =====
+# Nombres centralizados de exchanges, colas y routing keys
 pedidos360:
   rabbit:
-    dlq-logger-enabled: false             # true = un listener consume las DLQ y las deja en log
+    dlq-logger-enabled: false
     exchanges:
       topic: pedidos360.topic
       direct: pedidos360.direct
@@ -71,7 +87,7 @@ pedidos360:
       order-created: order.created
       notification-pattern: order.*
       kitchen-ticket: kitchen.ticket
-      
+
 # Kafka topics
 app:
   kafka:
