@@ -1,7 +1,7 @@
 package cl.pedidos360.order.controller;
 
 import cl.pedidos360.order.dto.event.LowStockEvent;
-import cl.pedidos360.order.messaging.kafka.OrderAnalyticsConsumer;
+import cl.pedidos360.order.messaging.kafka.OrderAnalyticsService;
 import cl.pedidos360.order.model.OrderAudit;
 import cl.pedidos360.order.repository.OrderAuditRepository;
 import cl.pedidos360.order.streams.InventoryQueryService;
@@ -21,11 +21,11 @@ import java.util.Map;
 @RequestMapping("/api/orders/stream")
 public class StreamingController {
 
-    private final OrderAnalyticsConsumer analytics;
+    private final OrderAnalyticsService analytics;
     private final OrderAuditRepository auditRepository;
     private final InventoryQueryService inventory;
 
-    public StreamingController(OrderAnalyticsConsumer analytics,
+    public StreamingController(OrderAnalyticsService analytics,
                                OrderAuditRepository auditRepository,
                                InventoryQueryService inventory) {
         this.analytics = analytics;

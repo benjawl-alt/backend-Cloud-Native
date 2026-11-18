@@ -67,8 +67,8 @@ pedidos360:
 app:
   stock:
     low-threshold: 10
-
   kafka:
+    replicas: ${KAFKA_REPLICAS:1}
     topics:
       orders-created: pedidos360.orders.created
       low-stock: pedidos360.inventory.low-stock
