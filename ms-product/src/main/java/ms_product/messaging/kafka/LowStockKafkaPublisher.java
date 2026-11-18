@@ -1,3 +1,4 @@
+
 package ms_product.messaging.kafka;
 
 import ms_product.dto.event.LowStockEvent;
@@ -39,5 +40,17 @@ public class LowStockKafkaPublisher {
         } catch (RuntimeException ex) {
             log.error("[KAFKA] No se pudo serializar low-stock de {}", event.productId(), ex);
         }
+    }
+
+    /** Tombstone: borra la alerta del producto en el tópico compactado y en la KTable de Streams. */
+    public void clear(String productId) {
+        kafkaTemplate.send(topic, productId, null)
+                .whenComplete((result, error) -> {
+                    if (error != null) {
+                        log.error("[KAFKA] No se pudo limpiar low-stock de {}", productId, error);
+                    } else {
+                        log.info("[KAFKA] Alerta low-stock limpiada. producto={}", productId);
+                    }
+                });
     }
 }
