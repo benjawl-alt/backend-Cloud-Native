@@ -1,0 +1,91 @@
+name: pedidos360-rabbitmq
+
+services:
+
+  rabbitmq1:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq1
+    hostname: rabbitmq1
+    restart: unless-stopped
+    environment:
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-pedidos360-cookie-secreta}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-pedidos360}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-pedidos360}
+      RABBITMQ_NODENAME: rabbit@rabbitmq1
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:25682:15672"
+    volumes:
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - rabbitmq1_data:/var/lib/rabbitmq
+    networks: [pedidos360-net]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
+  rabbitmq2:
+    image: rabbitmq:3.13-management
+    container_name: rabbitmq2
+    hostname: rabbitmq2
+    restart: unless-stopped
+    environment:
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE:-pedidos360-cookie-secreta}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-pedidos360}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-pedidos360}
+      RABBITMQ_NODENAME: rabbit@rabbitmq2
+    ports:
+      - "127.0.0.1:5673:5672"
+      - "127.0.0.1:25683:15672"
+    volumes:
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - rabbitmq2_data:/var/lib/rabbitmq
+    depends_on:
+      rabbitmq1:
+        condition: service_healthy
+    networks: [pedidos360-net]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
+  rabbitmq-policy:
+    image: curlimages/curl:8.8.0
+    container_name: pedidos360-rabbitmq-policy
+    restart: "no"
+    depends_on:
+      rabbitmq1:
+        condition: service_healthy
+      rabbitmq2:
+        condition: service_healthy
+    networks: [pedidos360-net]
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      set -e
+      until curl -fsS \
+        -u "${RABBITMQ_USER:-pedidos360}:${RABBITMQ_PASSWORD:-pedidos360}" \
+        http://rabbitmq1:15672/api/overview >/dev/null; do
+        echo "Esperando RabbitMQ..."
+        sleep 5
+      done
+      curl -fsS \
+        -u "${RABBITMQ_USER:-pedidos360}:${RABBITMQ_PASSWORD:-pedidos360}" \
+        -X PUT \
+        -H "content-type: application/json" \
+        http://rabbitmq1:15672/api/policies/%2F/ha-all \
+        -d '{"pattern":".*","definition":{"ha-mode":"all","ha-sync-mode":"automatic"},"apply-to":"queues"}'
+      echo "Politica HA aplicada correctamente"
+
+networks:
+  pedidos360-net:
+    external: true
+
+volumes:
+  rabbitmq1_data:
+    name: pedidos360_rabbitmq1_data
+  rabbitmq2_data:
+    name: pedidos360_rabbitmq2_data
